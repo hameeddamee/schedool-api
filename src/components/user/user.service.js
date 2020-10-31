@@ -21,67 +21,169 @@ const findUser = async (query = {}, selectQuery = "", findMode = "one") => {
   return user;
 };
 
-exports.signUp = async ({
-  formattedFirstName,
-  formattedLastName,
-  formattedfullNames,
-  email,
-  password,
-  oauthAvatar,
-  oauthId,
-  oauthType,
-}) => {
-  let avatar;
+exports.checkUserExist = async (query) => {
+  const user = await findUser({ ...query });
 
-  if (!isEmpty(oauthAvatar)) {
-    avatar = oauthAvatar;
-  } else {
-    avatar = await gravatar.url(email, {
-      s: "200", // Size
-      r: "pg", // Rating
-      d: "mm", // Default
-    });
+  if (!user) {
+    return false;
   }
+
+  return true;
+};
+
+exports.signUp = async ({ formattedfullNames, email, password }) => {
+  let avatar = await gravatar.url(email, {
+    s: "200", // Size
+    r: "pg", // Rating
+    d: "mm", // Default
+  });
+
   // Save the user
   let userObj = {
-    firstName: formattedFirstName,
-    lastName: formattedLastName,
-    fullName: formattedfullNames,
+    name: formattedfullNames,
     email,
-    avatar: oauthAvatar || avatar,
+    avatar: avatar,
     enable: true,
+    password,
   };
-  if (!isEmpty(oauthId)) userObj.oauthId = oauthId;
-  if (!isEmpty(oauthType)) userObj.oauthType = oauthType;
-  if (isEmpty(oauthId)) userObj.password = password;
 
   const user = new User(userObj);
   await user.save();
-
-  /**
-   * enable the code below if you want to send message to users upon login. In that case,
-   *you have to pass in sendgrid credentials to the mailHelpers module
-   */
-
-  // await mailHelpers.send({
-  //   user,
-  //   filename: "confirm-sign-up",
-  //   subject: "Confirm Sign Up",
-  // });
 
   let token = jwtHelpers.encode({ email });
   logger.info(`Auth token created: ${token}`);
 
   return {
     token: `${config.tokenType} ${token}`,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    fullName: user.fullName,
+    name: user.name,
+    email: user.email,
     avatar: user.avatar,
     enable: user.enable,
-    email: user.email,
   };
 };
+
+exports.authenticate = async (email, password) => {
+  const user = await User.findOne({ email }).populate("todos");
+
+  if (!user) {
+    logger.warn("Authentication failed. Wrong credential.");
+    throw userError.WrongCredential();
+  }
+  if (!user.enable) {
+    logger.warn("User account not activated");
+    throw userError.Unactivated();
+  }
+  const isValidPassword = await bcrypt.compareSync(password, user.password);
+  if (!isValidPassword) {
+    logger.warn("Authentication failed. Wrong credential.");
+    throw userError.WrongCredential();
+  }
+
+  let token = jwtHelpers.encode({ email });
+  logger.info(`Auth token created: ${token}`);
+
+  return {
+    token: `${config.tokenType} ${token}`,
+    user: {
+      name: user.name,
+      avatar: user.avatar,
+      enable: user.enable,
+      email: user.email,
+      todos: user.todos,
+    },
+  };
+};
+
+exports.findAllUsers = async () => {
+  const selectQuery = {
+    password: 0,
+    resetPasswordExpires: 0,
+    resetPasswordToken: 0,
+  };
+  const users = await findUser({}, selectQuery, "many");
+
+  return users;
+};
+
+exports.editUser = async (query, userObj) => {
+  await updateUser(query, userObj);
+  const selectQuery = {
+    password: 0,
+    resetPasswordExpires: 0,
+    resetPasswordToken: 0,
+  };
+
+  const user = await findAndPopulate(
+    {
+      ...query,
+    },
+    selectQuery,
+    "posts"
+  );
+
+  return user;
+};
+
+exports.deleteUser = async (query) => {
+  const res = await deleteOneUser(query);
+
+  if (res.deletedCount === 0) {
+    return false;
+  }
+  return true;
+};
+
+const findAndPopulate = async (
+  query = {},
+  selectQuery = {},
+  path = "",
+  pathQuery = "",
+  findMode = "one",
+  sortQuery = { _id: -1 }
+) => {
+  const user = await User.find(query)
+    .select(selectQuery)
+    .populate({
+      path: path,
+      select: pathQuery,
+    })
+    .sort(sortQuery);
+
+  if (findMode === "one") {
+    return user[0];
+  }
+  return user;
+};
+
+const updateUser = async (query, userObj) => {
+  await User.updateOne(query, userObj);
+  return true;
+};
+
+const deleteOneUser = async (query) => {
+  const res = await User.deleteOne(query);
+  return res;
+};
+
+exports.addtodo = async (userId, todo) => {
+  const user = await findUser({ _id: userId });
+
+  if (isEmpty(user)) {
+    logger.warn("User not found.");
+    throw userError.UserNotFound();
+  }
+
+  user.todos.push(todo);
+  await user.save();
+
+  return true;
+};
+
+/**
+|--------------------------------------------------
+| DELETE EVERYTHING BELOW THIS LINE WHEN DONE
+|--------------------------------------------------
+*/
 
 exports.confirmSignUp = async (email) => {
   const selectQuery = "fullName avatar enable email";
@@ -104,61 +206,6 @@ exports.findUserByOauthId = async (
   const user = await findUser({ oauthId: id }, selectQuery);
 
   return user;
-};
-
-exports.checkUserExist = async (email) => {
-  const user = await findUser({ email });
-
-  if (!user) {
-    return false;
-  }
-
-  return true;
-};
-
-exports.authenticate = async (email, password) => {
-  const user = await User.findOne({ email }).populate("todos");
-
-  if (!user) {
-    logger.warn("Authentication failed. User not found.");
-    throw userError.UserNotFound();
-  }
-  if (!user.enable) {
-    logger.warn("User account not activated");
-    throw userError.Unactivated();
-  }
-
-  if (password && user.oauthType !== "LOCAL") {
-    logger.warn("Wrong auth method");
-    throw userError.UserWrongMethod();
-  }
-
-  if (!password && user.oauthType === "LOCAL") {
-    logger.warn("Wrong auth method");
-    throw userError.UserWrongMethod();
-  }
-
-  if (password) {
-    const isValidPassword = await bcrypt.compareSync(password, user.password);
-    if (!isValidPassword) {
-      logger.warn("Authentication failed. Wrong password.");
-      throw userError.WrongPassword();
-    }
-  }
-
-  let token = jwtHelpers.encode({ email });
-  logger.info(`Auth token created: ${token}`);
-
-  return {
-    token: `${config.tokenType} ${token}`,
-    user: {
-      fullName: user.fullName,
-      avatar: user.avatar,
-      enable: user.enable,
-      email: user.email,
-      todos: user.todos,
-    },
-  };
 };
 
 exports.forgotPassword = async (email, host) => {
@@ -265,40 +312,4 @@ exports.findUserById = async (id) => {
   }
 
   return user;
-};
-
-exports.findCurrentUser = async (email) => {
-  // Find user
-  const selectQuery = {
-    password: 0,
-    resetPasswordExpires: 0,
-    resetPasswordToken: 0,
-  };
-  let user = await findUser({ email }, selectQuery);
-  return user;
-};
-
-exports.findAllUsers = async () => {
-  const selectQuery = {
-    password: 0,
-    resetPasswordExpires: 0,
-    resetPasswordToken: 0,
-  };
-  const users = await findUser({}, selectQuery, "many");
-
-  return users;
-};
-
-exports.addtodo = async (userId, todo) => {
-  const user = await findUser({ _id: userId });
-
-  if (isEmpty(user)) {
-    logger.warn("User not found.");
-    throw userError.UserNotFound();
-  }
-
-  user.todos.push(todo);
-  await user.save();
-
-  return true;
 };

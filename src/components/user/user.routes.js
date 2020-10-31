@@ -6,9 +6,7 @@ const { check } = require("express-validator");
 const {
   validateSignUp,
   validateLogin,
-  validateForgotPassword,
-  validateConfirmForgotPassword,
-  validateOauthSignUp,
+  validateEdit,
 } = require("./user.validator");
 const userController = require("./user.controller");
 
@@ -45,166 +43,56 @@ router.post(
 );
 
 /**
- * User Signup
- * @name   post/signup
- * @route  GET api/v1/user/sign-up
- * @desc   Local user signup flow
- * @api    public
- * @param  {String} path user's signup path
- * @return {Users} `User` instance
- */
-router.post(
-  "/sign-up-oauth",
-  validateOauthSignUp(),
-  catchErrors(userController.postSignUpWithOAuth)
-);
-
-/**
- * User Facebook Callback
- * @name   post/authenticate
- * @route  GET api/v1/user/authenticate
+ * User Login
+ * @name   post/login
+ * @route  GET api/v1/user/login
  * @api    public
  * @desc   route for user to login
  * @param  {String} path user's signup path
  * @return {Object} `Auth Token` and User Instance
  */
-router.post("/login", catchErrors(userController.postLogin));
+router.post("/login", validateLogin(), catchErrors(userController.postLogin));
 
 /**
- * User Facebook Callback
- * @name   post/authenticate
- * @route  GET api/v1/user/authenticate
- * @api    public
- * @desc   route for user to login
- * @param  {String} path user's signup path
- * @return {Object} `Auth Token` and User Instance
- */
-router.post("/login-oauth", catchErrors(userController.postLoginWithOAuth));
-/**
- * User forgot password
- * @name   post/forgot-password
- * @route  POST api/v1/user/forgot-password
- * @api    public
- * @desc   route for user to get password reset
- * @param  {String} path user's signup path
- * @return {Object} Response object with empty content and success message
- */
-router.post(
-  "/forgot-password",
-  validateForgotPassword(),
-  catchErrors(userController.postForgotPassword)
-);
-
-/**
- * User verify reset password token
- * @name   get/confirm-reset-password
- * @route  GET api/v1/user/confirm-reset-password
- * @api    public
- * @desc   route to get confirm password reset is still valid
- * @param  {String} path user's signup path
- * @return {Object} User Instance
- */
-router.get(
-  "/verify-reset-password/:token",
-  catchErrors(userController.getVerifyForgotPassword)
-);
-
-/**
- * User confirm reset password
- * @name   post/confirm-reset-password
- * @route  POST api/v1/user/confirm-reset-password
- * @api    public
- * @desc   route for user to get confirm their password reset
- * @param  {String} path user's signup path
- * @return {Object} User Instance
- */
-router.post(
-  "/confirm-reset-password/:token",
-  validateConfirmForgotPassword(),
-  catchErrors(userController.postConfirmResetPassword)
-);
-
-/**
- * User confirm reset password
- * @name   get/get-user-current
- * @route  POST api/v1/user/get-user-current
+ * Get All Users
+ * @name   get/get-all
+ * @route  POST api/v1/user/get-all
  * @api    private
  * @desc   route for user to load user profile
  * @param  {String} path user's signup path
  * @return {Object} User Instance
  */
-router.get(
-  "/get-user-current",
+router.get("/get-all", getAuthorize, catchErrors(userController.getAllUsers));
+
+/**
+ * Edit Exihibition
+ * @name   put/edit/:userId
+ * @route  PUT api/v1/user/edit/:userId
+ * @api    private
+ * @desc   route to edit user
+ * @param  {String} path user's signup path
+ * @return {Object} `User` instances
+ */
+router.post(
+  "/edit/:userId",
+  validateEdit(),
   getAuthorize,
-  catchErrors(userController.getCurrentUser)
+  catchErrors(userController.postEditUser)
 );
 
 /**
- * User Signup Confirmation
- * @name   get/confirm-sign-up
- * @route  GET api/v1/user/confirm-sign-up
- * @api    public
- * @desc   route for user to confirm signup
- * @param  {String} path user's signup path
- * @return {Object} User Instance
+ * Delete User
+ * @name   delete/edit/:id
+ * @route  DELETE api/v1/user/remove/:id
+ * @api    private
+ * @desc   route for user to delete their user
+ * @param  {String} path user's user path
+ * @return {Object} `User` instances
  */
-router.get("/confirm-sign-up", catchErrors(userController.getConfirmSignUp));
-
-/**
- * User Google Signup
- * @name   get/google
- * @route  GET api/v1/user/google
- * @api    public
- * @desc   launch Google signup flow
- * @param  {String} path user's signup path
- * @return {Users} `User` instance
- */
-router.get(
-  "/google",
-  passport.authenticate("google", {
-    scope: ["profile", "email"],
-  })
-);
-
-/**
- * User Facebook Signup
- * @name   get/facebook
- * @route  GET api/v1/user/facebook
- * @api    public
- * @desc   launch Facebook signup flow
- * @param  {String} path user's signup path
- * @return {Users} `User` instance
- */
-router.get(
-  "/facebook",
-  passport.authenticate("facebook", {
-    scope: ["email"],
-  })
-);
-
-/**
- * User Google Callback
- * @name   get/google/callback
- * @route  GET api/v1/user/google/callback
- * @api    public
- * @desc   callback route for google to redirect to
- * @param  {String} path user's signup path
- * @return {Users} `User` instance
- */
-router.get("/google/callback", catchErrors(userController.getGoogleCallback));
-
-/**
- * User Facebook Callback
- * @name   get/facebook/callback
- * @route  GET api/v1/user/facebook/callback
- * @api    public
- * @desc   callback route for facebook to redirect to
- * @param  {String} path user's signup path
- * @return {Users} `User` instance
- */
-router.get(
-  "/facebook/callback",
-  catchErrors(userController.getFacebookCallback)
+router.delete(
+  "/remove/:userId",
+  getAuthorize,
+  catchErrors(userController.deleteUser)
 );
 
 module.exports = router;

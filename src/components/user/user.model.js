@@ -6,10 +6,7 @@ mongoose.Promise = global.Promise;
 
 const userSchema = new Schema(
   {
-    firstName: { type: String, trim: true },
-    lastName: { type: String, trim: true },
-    fullName: { type: String, trim: true },
-    avatar: { type: String, trim: true },
+    name: { type: String, trim: true },
     email: {
       type: String,
       unique: true,
@@ -18,40 +15,13 @@ const userSchema = new Schema(
       required: true,
     },
     password: { type: String, trim: true },
+    avatar: { type: String, trim: true },
     enable: { type: Boolean, default: true },
-    oauthId: {
-      type: String,
-      trim: true,
-      default: "",
+    todos: {
+      type: [Schema.Types.ObjectId],
+      ref: "Todo",
+      default: [],
     },
-    oauthType: {
-      type: String,
-      trim: true,
-      enum: ["LOCAL", "GOOGLE"],
-      default: "LOCAL",
-    },
-    notifications: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Notification",
-        default: [],
-      },
-    ],
-    messages: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Message",
-        default: [],
-      },
-    ],
-    todos: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "todo",
-        default: [],
-      },
-    ],
-    settings: { type: [Schema.Types.ObjectId], ref: "setting", default: [] },
     resetPassword: String,
     resetPasswordToken: String,
     resetPasswordExpires: Date,
@@ -68,10 +38,6 @@ const userSchema = new Schema(
 userSchema.pre("save", async function (next) {
   try {
     if (!this.isModified("password")) {
-      return next();
-    }
-
-    if (this.oauthId !== "") {
       return next();
     }
 

@@ -20,20 +20,6 @@ exports.validateSignUp = () => {
   ];
 };
 
-exports.validateOauthSignUp = () => {
-  return [
-    check("firstName", message.name)
-      .isAlpha()
-      .isLength({ min: 2, max: 20 })
-      .trim(),
-    check("lastName", message.name)
-      .isAlpha()
-      .isLength({ min: 2, max: 20 })
-      .trim(),
-    check("email").isEmail().withMessage(message.email).trim().normalizeEmail(),
-  ];
-};
-
 exports.validateLogin = () => {
   return [
     check("email").isEmail().withMessage(message.email).trim().normalizeEmail(),
@@ -44,17 +30,17 @@ exports.validateLogin = () => {
   ];
 };
 
-exports.validateForgotPassword = () => {
+exports.validateEdit = () => {
   return [
-    check("email").isEmail().withMessage(message.email).trim().normalizeEmail(),
-  ];
-};
-
-exports.validateConfirmForgotPassword = () => {
-  return [
-    check("password", message.password)
-      .isLength({ min: 5 })
-      .matches(passwordPattern)
-      .trim(),
+    check("name")
+      .isAlpha()
+      .isLength({ min: 5, max: 20 })
+      .trim()
+      .withMessage(message.name),
+    check("email").isEmail().normalizeEmail().trim().withMessage(message.email),
+    check("avatar")
+      .isURL()
+      .trim()
+      .withMessage("Avatar must be a valid image link"),
   ];
 };
