@@ -165,8 +165,8 @@ const deleteOneUser = async (query) => {
   return res;
 };
 
-exports.addtodo = async (userId, todo) => {
-  const user = await findUser({ _id: userId });
+exports.addTodo = async (todo) => {
+  const user = await findUser({ _id: todo.userId });
 
   if (isEmpty(user)) {
     logger.warn("User not found.");

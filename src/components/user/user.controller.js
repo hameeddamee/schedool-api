@@ -1,4 +1,3 @@
-const validator = require("validator");
 const { validationResult } = require("express-validator");
 
 const userService = require("./user.service");
@@ -60,7 +59,6 @@ exports.postLogin = async (req, res) => {
 };
 
 exports.getAllUsers = async (req, res) => {
-  const email = req.decoded.payload.email;
   const user = await userService.findAllUsers();
 
   if (!user) {
@@ -87,7 +85,7 @@ exports.postEditUser = async (req, res) => {
   }
 
   if (isEmpty(userId)) {
-    throw exError.NotFound("Please specify a user to edit");
+    throw userError.UserNotFound("Please specify a user to edit");
   }
 
   const userExist = await userService.checkUserExist({ _id: userId });

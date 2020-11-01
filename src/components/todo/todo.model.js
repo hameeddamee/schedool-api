@@ -5,18 +5,15 @@ mongoose.Promise = global.Promise;
 
 const TodoSchema = new Schema(
   {
-    linkId: { type: String, trim: true },
-    guests: [
-      {
-        type: String,
-        default: [],
-      },
-    ],
-    host: {
+    title: { type: String, trim: true },
+    description: { type: String, trim: true },
+    state: { type: String, enum: ["TODO", "DONE"], default: "TODO" },
+    priority: { type: String, enum: ["LOW", "MEDIUM", "HIGH"] },
+    dueDate: { type: Date },
+    userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
     },
-    settings: { type: Schema.Types.ObjectId, ref: "Setting" },
   },
   {
     timestamps: true,

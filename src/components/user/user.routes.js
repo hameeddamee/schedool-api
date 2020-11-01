@@ -1,7 +1,5 @@
-const passport = require("passport");
 const express = require("express");
 const router = express.Router();
-const { check } = require("express-validator");
 
 const {
   validateSignUp,
@@ -65,7 +63,7 @@ router.post("/login", validateLogin(), catchErrors(userController.postLogin));
 router.get("/get-all", getAuthorize, catchErrors(userController.getAllUsers));
 
 /**
- * Edit Exihibition
+ * Edit User
  * @name   put/edit/:userId
  * @route  PUT api/v1/user/edit/:userId
  * @api    private
@@ -82,12 +80,11 @@ router.post(
 
 /**
  * Delete User
- * @name   delete/edit/:id
- * @route  DELETE api/v1/user/remove/:id
+ * @name   delete/edit/:userId
+ * @route  DELETE api/v1/user/remove/:userId
  * @api    private
  * @desc   route for user to delete their user
  * @param  {String} path user's user path
- * @return {Object} `User` instances
  */
 router.delete(
   "/remove/:userId",

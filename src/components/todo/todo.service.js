@@ -1,34 +1,26 @@
-const todo = require("./todo.model");
-const todoError = require("./todo.error");
-
-const config = require("../../config");
-
-const cleanCache = require("../../library/middlewares/cleanCache");
-const logger = require("../../library/helpers/loggerHelpers");
-const jwtHelpers = require("../../library/helpers/jwtHelpers");
-const mailHelpers = require("../../library/helpers/mailHelpers");
-const stringHelpers = require("../../library/helpers/stringHelpers");
+const Todo = require("./todo.model");
 const { isEmpty } = require("../../library/helpers/validationHelpers");
 
-exports.createtodo = async ({ _id }) => {
-  let linkId = stringHelpers.genCryptoRandomId();
-
-  const todo = await savetodoWithPayload({
-    linkId,
-    host: _id,
-  });
-
+exports.createTodo = async (payload) => {
+  const todo = await saveTodoWithPayload(payload);
   const todoSaved = await findAndPopulate(
-    { linkId, _id: todo._id },
-    "host",
-    "firstName lastName fullName email"
+    { _id: todo._id },
+    null,
+    "userId",
+    "name email avatar"
   );
 
   return todoSaved;
 };
 
-exports.checktodoOwnership = async (hostId, todoLinkId) => {
-  const todo = await findtodo({ host: hostId, linkId: todoLinkId });
+exports.getAllTodosByUser = async (userId) => {
+  const todos = await findTodo({ userId }, null, "many");
+
+  return todos;
+};
+
+exports.checkTodoOwnership = async (userId) => {
+  const todo = await findTodo({ userId });
 
   if (isEmpty(todo)) {
     return false;
@@ -37,79 +29,74 @@ exports.checktodoOwnership = async (hostId, todoLinkId) => {
   return true;
 };
 
-exports.checktodoGuest = async (guestEmail, todoLinkId) => {
-  const todo = await findtodo({ guests: guestEmail, linkId: todoLinkId });
+exports.editTodo = async (query, todoObj) => {
+  await updateTodo(query, todoObj);
 
-  if (isEmpty(todo)) {
-    return false;
-  }
-
-  return true;
-};
-
-exports.addGuestsTotodo = async (todoLinkId, guestList) => {
-  const todo = await findtodo({ linkId: todoLinkId });
-
-  if (isEmpty(todo)) {
-    throw todoError.NotAllowed();
-  }
-
-  for (const guest of guestList) {
-    const guestFound = todo.guests.filter(
-      (guestExisting) => guest === guestExisting
-    );
-
-    if (isEmpty(guestFound)) {
-      todo.guests.push(guest);
-    }
-  }
-
-  await savetodo(todo);
-
-  const updatetodo = await findAndPopulate(
-    { linkId: todoLinkId },
-    "host",
-    "firstName lastName fullName email"
+  const todo = await findAndPopulate(
+    {
+      ...query,
+    },
+    null,
+    "userId",
+    "name email avatar"
   );
 
-  return updatetodo;
+  return todo;
+};
+
+exports.deleteTodo = async (query) => {
+  const res = await deleteOneTodo(query);
+
+  if (res.deletedCount === 0) {
+    return false;
+  }
+  return true;
 };
 
 /**
  * Data Access Methods below here
  */
 
-const findtodo = async (query = {}, selectQuery = "", findMode = "one") => {
-  const todo = await todo.find(query).select(selectQuery).exec();
+const findTodo = async (query = {}, selectQuery = "", findMode = "one") => {
+  const todo = await Todo.find(query).select(selectQuery).exec();
   if (findMode === "one") {
     return todo[0];
   }
   return todo;
 };
 
-const savetodoWithPayload = async (payload = {}) => {
-  const todo = new todo(payload);
+const saveTodoWithPayload = async (payload = {}) => {
+  const todo = new Todo(payload);
   await todo.save();
 
   return todo;
 };
 
-const savetodo = async (todo) => {
-  await todo.save();
+const deleteOneTodo = async (query) => {
+  const res = await Todo.deleteOne(query);
+  return res;
+};
 
-  return todo;
+const updateTodo = async (query, todoObj) => {
+  await Todo.updateOne(query, todoObj);
+  return true;
 };
 
 const findAndPopulate = async (
   query = {},
+  selectQuery = {},
   path = "",
-  selectQuery = "",
-  findMode = "one"
+  pathQuery = "",
+  findMode = "one",
+  sortQuery = { _id: -1 }
 ) => {
-  const todo = await todo.find(query).populate({
-    path: path,
-    select: selectQuery,
-  });
+  const todo = await Todo.find(query)
+    .select(selectQuery)
+    .populate({
+      path: path,
+      select: pathQuery,
+    })
+    .sort(sortQuery);
 
   if (findMode === "one") {
     return todo[0];

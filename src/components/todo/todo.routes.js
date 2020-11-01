@@ -2,13 +2,14 @@ const express = require("express");
 const router = express.Router();
 
 const todoController = require("./todo.controller");
+const { validateTodo } = require("./todo.validator");
 
 const { catchErrors } = require("../../library/helpers/errorFormatHelpers");
 const { getAuthorize } = require("../../library/middlewares/authMiddleware");
 
 // Unprotected todo routes
 /**
- * todo Signup
+ * Todo Test
  * @name   get/
  * @route  GET api/v1/todo/
  * @desc   Test todo module
@@ -32,37 +33,48 @@ router.get("/", (req, res) => {
 router.post(
   "/create",
   getAuthorize,
-  catchErrors(todoController.postCreatetodo)
+  validateTodo(),
+  catchErrors(todoController.postCreateTodo)
 );
 
 /**
- * Invite to todo
- * @name   post/invite
- * @route  POST api/v1/todo/invite/:linkId
- * @desc   Invite users to todo
- * @api    public
- * @param  {String} path todo's  invite path
- * @return {todos} `todo` instance
+ * Get All Todos by a user
+ * @name   get/all
+ * @route  POST api/v1/todo/all
+ * @api    private
+ * @desc   route for user to load todo
+ * @return {Object} Todo Instances
+ */
+router.get("/all", getAuthorize, catchErrors(todoController.getAllTodos));
+
+/**
+ * Edit Todo
+ * @name   put/edit/:todoId
+ * @route  PUT api/v1/todo/edit/:todoId
+ * @api    private
+ * @desc   route to edit todo
+ * @param  {String} path todo's edit path
+ * @return {Object} `Todo` instances
  */
 router.post(
-  "/invite/:linkId",
+  "/edit/:todoId",
   getAuthorize,
-  catchErrors(todoController.postInviteTotodo)
+  validateTodo(),
+  catchErrors(todoController.postEditTodo)
 );
 
 /**
- * Join a todo
- * @name   post/join
- * @route  POST api/v1/todo/join/:linkId
- * @desc   Join a todo
- * @api    public
- * @param  {String} path todo's creation path
- * @return {todos} `todo` instance
+ * Delete Todo
+ * @name   delete/edit/:todoId
+ * @route  DELETE api/v1/todo/remove/:todoId
+ * @api    private
+ * @desc   route users to delete their todos
+ * @param  {String} path todo's delete path
  */
-router.post(
-  "/invite/:linkId",
+router.delete(
+  "/remove/:todoId",
   getAuthorize,
-  catchErrors(todoController.postJointodo)
+  catchErrors(todoController.deleteTodo)
 );
 
 module.exports = router;

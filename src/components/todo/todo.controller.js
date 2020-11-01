@@ -1,3 +1,5 @@
+const { validationResult } = require("express-validator");
+
 const todoService = require("./todo.service");
 const userService = require("../user/user.service");
 const todoError = require("./todo.error");
@@ -10,85 +12,97 @@ const { isEmpty } = require("../../library/helpers/validationHelpers");
 const config = require("../../config");
 const socketIO = require("../../socket");
 
-exports.postCreatetodo = async (req, res) => {
-  const authorizedUser = req.currentUser;
-  const todo = await todoService.createtodo(authorizedUser);
+exports.postCreateTodo = async (req, res) => {
+  const errors = validationResult(req);
 
-  await userService.addtodo(authorizedUser._id, todo);
+  if (!errors.isEmpty()) {
+    throw todoError.InvalidInput(errors.mapped());
+  }
+
+  const authorizedUser = req.currentUser;
+  const todoData = req.body;
+  todoData.userId = authorizedUser._id;
+  const savedTodo = await todoService.createTodo(todoData);
+
+  await userService.addTodo(savedTodo);
 
   return res.status(200).send(
     sendResponse({
       message: "todo created successfully",
-      content: todo,
+      content: savedTodo,
       success: true,
     })
   );
 };
 
-exports.postInviteTotodo = async (req, res) => {
+exports.getAllTodos = async (req, res) => {
   const authorizedUser = req.currentUser;
-  const todoLinkId = req.params.linkId;
-  const guestList = req.body.guestEmails;
-
-  if (isEmpty(guestList)) {
-    throw todoError.NotAllowed("You cannot invite with an empty email");
-  }
-
-  const todoOwnershipCheck = await todoService.checktodoOwnership(
-    authorizedUser._id,
-    todoLinkId
-  );
-
-  if (todoOwnershipCheck === false) {
-    throw todoError.NotAllowed("You are not permitted to invite to this todo");
-  }
-
-  const updatetodo = await todoService.addGuestsTotodo(todoLinkId, guestList);
+  const todos = await todoService.getAllTodosByUser(authorizedUser._id);
 
   return res.status(200).send(
     sendResponse({
-      message: "User invite sent successfully",
-      content: updatetodo,
+      message: "Current user successfully loaded",
+      content: todos,
       success: true,
     })
   );
 };
 
-exports.postJointodo = async (req, res) => {
-  const authorizedUser = req.currentUser;
-  const todoLinkId = req.params.linkId;
+exports.postEditTodo = async (req, res) => {
+  const errors = validationResult(req);
 
-  const todoGuestCheck = await todoService.checktodoGuest(
-    authorizedUser.email,
-    todoLinkId
-  );
-
-  if (todoGuestCheck === false) {
-    throw todoError.NotAllowed(
-      "You are not on a guest list to join this todo."
-    );
+  if (!errors.isEmpty()) {
+    throw todoError.InvalidInput(errors.mapped());
   }
 
-  // do some SocketIO stuffs
-  const socket = socketIO.getSocket();
-  socket.on("join-todo", (todoId, userId) => {
-    socket.join(todoId);
-    socket.to(todoId).broadcast.emit("user-connected", userId);
-    // messages
-    socket.on("message", (message) => {
-      //send message to the same todo
-      io.to(todoId).emit("createMessage", message);
-    });
+  let updateData = req.body;
+  const authorizedUser = req.currentUser;
+  const { todoId } = req.params;
 
-    socket.on("disconnect", () => {
-      socket.to(todoId).broadcast.emit("user-disconnected", userId);
-    });
-  });
+  const isValidOwner = await todoService.checkTodoOwnership(authorizedUser._id);
+
+  if (!isValidOwner) {
+    throw todoError.NotAllowed("You cannot perform this action");
+  }
+
+  if (isEmpty(todoId)) {
+    throw todoError.NotFound("Please specify a todo to edit");
+  }
+
+  const query = { _id: todoId };
+  const update = { $set: updateData };
+  let editedTodo = await todoService.editTodo(query, update);
 
   return res.status(200).send(
     sendResponse({
-      message: "User joined todo successfully",
-      content: {},
+      message: "Todo updated",
+      content: editedTodo,
+      success: true,
+    })
+  );
+};
+
+exports.deleteTodo = async (req, res) => {
+  let authorizedUser = req.currentUser;
+  let { todoId } = req.params;
+
+  if (isEmpty(todoId)) {
+    throw todoError.NotFound("Please specify a todo to delete");
+  }
+
+  const query = { _id: todoId };
+  const isDeleted = await todoService.deleteTodo(query);
+
+  if (!isDeleted) {
+    throw todoError.ActionFailed("Unable to delete todo");
+  }
+
+  const allTodos = await todoService.getAllTodosByUser(authorizedUser._id);
+
+  return res.status(200).send(
+    sendResponse({
+      message: "User deleted",
+      content: allTodos,
       success: true,
     })
   );
