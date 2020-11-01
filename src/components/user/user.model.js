@@ -17,11 +17,13 @@ const userSchema = new Schema(
     password: { type: String, trim: true },
     avatar: { type: String, trim: true },
     enable: { type: Boolean, default: true },
-    todos: {
-      type: [Schema.Types.ObjectId],
-      ref: "Todo",
-      default: [],
-    },
+    todos: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Todo",
+        default: [],
+      },
+    ],
     resetPassword: String,
     resetPasswordToken: String,
     resetPasswordExpires: Date,

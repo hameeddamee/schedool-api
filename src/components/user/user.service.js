@@ -52,7 +52,7 @@ exports.signUp = async ({ formattedfullNames, email, password }) => {
 };
 
 exports.authenticate = async (email, password) => {
-  const user = await User.findOne({ email }).populate("todos");
+  const user = await User.findOne({ email }).populate("todo");
 
   if (!user) {
     logger.warn("Authentication failed. Wrong credential.");
@@ -89,7 +89,7 @@ exports.findAllUsers = async () => {
     resetPasswordExpires: 0,
     resetPasswordToken: 0,
   };
-  const users = await findUser({}, selectQuery, "many");
+  const users = await findAndPopulate({}, selectQuery, "todos", null, "many");
 
   return users;
 };
@@ -107,7 +107,7 @@ exports.editUser = async (query, userObj) => {
       ...query,
     },
     selectQuery,
-    "posts"
+    "todos"
   );
 
   return user;
@@ -181,7 +181,7 @@ exports.addTodo = async (todo) => {
     throw userError.UserNotFound();
   }
 
-  user.todos.push(todo);
+  user.todos.push(todo._id);
   await user.save();
 
   return true;

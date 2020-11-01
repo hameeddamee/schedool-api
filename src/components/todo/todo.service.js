@@ -14,7 +14,14 @@ exports.createTodo = async (payload) => {
 };
 
 exports.getAllTodosByUser = async (userId) => {
-  const todos = await findTodo({ userId }, null, "many");
+  const todos = await findAndPopulate(
+    { userId },
+    null,
+    "userId",
+    "name email avatar",
+    "many"
+  );
+  // const todos = await findTodo({ userId }, null, "many");
 
   return todos;
 };
