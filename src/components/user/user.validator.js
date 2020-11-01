@@ -11,7 +11,7 @@ const message = {
 
 exports.validateSignUp = () => {
   return [
-    check("name", message.name).isAlpha().isLength({ min: 5, max: 20 }).trim(),
+    check("name", message.name).isLength({ min: 5, max: 20 }).trim(),
     check("email").isEmail().withMessage(message.email).trim().normalizeEmail(),
     check("password", message.password)
       .isLength({ min: 5 })
@@ -33,7 +33,6 @@ exports.validateLogin = () => {
 exports.validateEdit = () => {
   return [
     check("name")
-      .isAlpha()
       .isLength({ min: 5, max: 20 })
       .trim()
       .withMessage(message.name),

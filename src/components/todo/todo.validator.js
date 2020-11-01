@@ -6,7 +6,7 @@ const message = {
 
 exports.validateTodo = () => {
   return [
-    check("title", message.name).isString().isLength({ min: 5 }).trim(),
+    check("title", message.name).isString().isLength({ min: 1 }).trim(),
     check("description").isString(),
     check("state").isString(),
     check("priority").isString(),
