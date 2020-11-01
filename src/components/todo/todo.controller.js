@@ -5,12 +5,7 @@ const userService = require("../user/user.service");
 const todoError = require("./todo.error");
 
 const { sendResponse } = require("../../library/helpers/responseHelpers");
-const { encode } = require("../../library/helpers/jwtHelpers");
-const logger = require("../../library/helpers/loggerHelpers");
-const jwtHelpers = require("../../library/helpers/jwtHelpers");
 const { isEmpty } = require("../../library/helpers/validationHelpers");
-const config = require("../../config");
-const socketIO = require("../../socket");
 
 exports.postCreateTodo = async (req, res) => {
   const errors = validationResult(req);

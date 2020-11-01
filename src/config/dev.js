@@ -6,7 +6,7 @@ if (!envFound) {
 }
 
 module.exports = {
-  appName: "joynt-meet-dev",
+  appName: "schedool",
   port: 4000,
   dbURI: "mongodb://localhost:27017/schedool",
   jwtSecret: "3p48-94i1u08qfhdj489135u0t9324i=2r02jf449u130",

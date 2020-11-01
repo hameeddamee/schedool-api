@@ -5,21 +5,10 @@ const User = require("./user.model");
 const userError = require("./user.error");
 
 const config = require("../../config");
-const cleanCache = require("../../library/middlewares/cleanCache");
 
 const logger = require("../../library/helpers/loggerHelpers");
 const jwtHelpers = require("../../library/helpers/jwtHelpers");
-const { randomPassword } = require("../../library/helpers/stringHelpers");
-const mailHelpers = require("../../library/helpers/mailHelpers");
 const { isEmpty } = require("../../library/helpers/validationHelpers");
-
-const findUser = async (query = {}, selectQuery = "", findMode = "one") => {
-  const user = await User.find(query).select(selectQuery).exec();
-  if (findMode === "one") {
-    return user[0];
-  }
-  return user;
-};
 
 exports.checkUserExist = async (query) => {
   const user = await findUser({ ...query });
@@ -133,6 +122,25 @@ exports.deleteUser = async (query) => {
   return true;
 };
 
+exports.findUserByEmail = async (email) => {
+  const user = await findUser({ email });
+
+  if (!user) {
+    logger.warn("Authentication failed. User not found.");
+    throw userError.UserNotFound("Authentication failed. User not found.");
+  }
+
+  return user;
+};
+
+const findUser = async (query = {}, selectQuery = "", findMode = "one") => {
+  const user = await User.find(query).select(selectQuery).exec();
+  if (findMode === "one") {
+    return user[0];
+  }
+  return user;
+};
+
 const findAndPopulate = async (
   query = {},
   selectQuery = {},
@@ -177,139 +185,4 @@ exports.addTodo = async (todo) => {
   await user.save();
 
   return true;
-};
-
-/**
-|--------------------------------------------------
-| DELETE EVERYTHING BELOW THIS LINE WHEN DONE
-|--------------------------------------------------
-*/
-
-exports.confirmSignUp = async (email) => {
-  const selectQuery = "fullName avatar enable email";
-  let user = await findUser({ email }, selectQuery);
-
-  if (user.enable === true) {
-    throw userError.UserAlreadyConfirmed();
-  }
-
-  user.enable = true;
-  await User.updateOne({ email }, user);
-
-  return user;
-};
-
-exports.findUserByOauthId = async (
-  id,
-  selectQuery = "fullName avatar enable email"
-) => {
-  const user = await findUser({ oauthId: id }, selectQuery);
-
-  return user;
-};
-
-exports.forgotPassword = async (email, host) => {
-  const user = await findUser({ email });
-
-  if (!user) {
-    throw userError.UserNotFound();
-  }
-
-  // Generate new password for mobile app purpose
-  let password = randomPassword();
-  logger.info(`Password was generated: ${password}`);
-  user.resetPassword = password;
-  user.resetPasswordToken = jwtHelpers.encode({ email }, config.jwtSecret, {
-    expiresIn: "1h",
-  });
-  user.resetPasswordExpires = Date.now() + 3600000;
-
-  await User.updateOne({ email }, user);
-  const resetURL = `${host}/auth/reset-password/${user.resetPasswordToken}`;
-  await mailHelpers.send({
-    user,
-    filename: "password-reset",
-    subject: "Password Reset",
-    resetURL,
-    resetPassword: password,
-  });
-
-  return user;
-};
-
-exports.verifyForgotPassword = async ({ token }) => {
-  const user = await findUser({
-    $or: [
-      {
-        resetPasswordToken: token,
-        resetPasswordExpires: { $gt: Date.now() },
-      },
-      {
-        resetPassword: token,
-      },
-    ],
-  });
-
-  if (!user) {
-    throw userError.PasswordReset();
-  }
-
-  return user;
-};
-
-exports.confirmResetPassword = async ({ token, password }) => {
-  const user = await findUser({
-    $or: [
-      {
-        resetPasswordToken: token,
-        resetPasswordExpires: { $gt: Date.now() },
-      },
-      {
-        resetPassword: token,
-      },
-    ],
-  });
-
-  if (!user) {
-    throw userError.PasswordReset();
-  }
-
-  const hash = await bcrypt.hashSync(password);
-
-  await User.updateOne(
-    { email: user.email },
-    {
-      password: hash,
-      resetPassword: undefined,
-      resetPasswordToken: undefined,
-      resetPasswordExpires: undefined,
-    }
-  );
-
-  const selectQuery = "fullName avatar enable email resetPassword";
-  const updatedUser = await findUser({ email: user.email }, selectQuery);
-
-  return updatedUser;
-};
-
-exports.findUserByEmail = async (email) => {
-  const user = await findUser({ email });
-
-  if (!user) {
-    logger.warn("Authentication failed. User not found.");
-    throw userError.UserNotFound("Authentication failed. User not found.");
-  }
-
-  return user;
-};
-
-exports.findUserById = async (id) => {
-  const user = await findUser({ _id: id });
-
-  if (!user) {
-    logger.warn("User not found.");
-    throw userError.UserNotFound();
-  }
-
-  return user;
 };

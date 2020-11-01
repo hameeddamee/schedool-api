@@ -1,5 +1,5 @@
 {
-  "name": "joyntmeet-clone-api",
+  "name": "schedool",
   "version": "1.0.0",
   "description": "the api for the google meet clone frontend",
   "main": "src/server.js",

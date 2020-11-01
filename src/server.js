@@ -46,16 +46,6 @@ if (cluster.isMaster) {
       ################################################
     `);
   });
-  const socketIO = require("./socket");
-  const io = socketIO.init(server);
-  io.on("connection", (socket) => {
-    socketIO.setSocket(socket);
-    logger.info(`
-      ******************
-        Client Connected
-      ******************
-    `);
-  });
 }
 
 // Cluster API has a variety of events.

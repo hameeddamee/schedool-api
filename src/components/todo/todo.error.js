@@ -1,8 +1,4 @@
-const {
-  UNPROCESSABLE_ENTITY,
-  UNAUTHORIZED,
-  NOT_FOUND,
-} = require("http-status-codes");
+const { UNPROCESSABLE_ENTITY, NOT_FOUND } = require("http-status-codes");
 const { AppError } = require("../../library/helpers/errorFormatHelpers");
 
 module.exports = {
