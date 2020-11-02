@@ -51,10 +51,8 @@ Schedool-api/
     library
       helpers
       middlewares
-    views
     app.js
     server.js
-    socket.js
   .gitignore
   .travis.yml
   package.json
