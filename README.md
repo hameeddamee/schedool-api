@@ -82,7 +82,7 @@ You can start contributing to the codebase once you're done with your local setu
 
 ## Rest API Documentation
 
-Once you're done seting up, you can read about the `endpoints` on postman.
+Once you're done setting up, you can read about the `endpoints` on postman.
 At the moment the API documentation is hosted on Postman:<br>
 [![Run in Postman](https://run.pstmn.io/button.svg)](https://documenter.getpostman.com/view/11294995/TVYM3aac)
 
