@@ -4,7 +4,8 @@
   "description": "the api for the google meet clone frontend",
   "main": "src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "mocha",
+    "test:watch": "mocha --watch *",
     "start": "nodemon ./src/server.js"
   },
   "repository": {
@@ -63,5 +64,9 @@
     "unirest": "^0.6.0",
     "validator": "^9.2.0",
     "winston": "^3.0.0-rc1"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^8.2.1"
   }
 }
