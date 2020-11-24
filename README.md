@@ -60,7 +60,7 @@ Schedool-api/
 ```
 
 The core of the app can be found in the `src` folder has illustrated above. Though the app does not implement microservice architecture at the moment, we have structured the app to make it easier to enable microservices in the future. To achieve this, we have broken down the contents in the `components` folder into modules. At the moment, there's just two modules which are the **users** module and the **todo** module. In the near future, I will be splitting the modules into microservices. The architectural approach is shown below:
-[[](https://github.com/hameeddamee/schedool-api/structure.png)](https://github.com/hameeddamee/schedool-api/structure.png)
+![structure](https://github.com/hameeddamee/schedool-api/blob/master/structure.png)
 
 ## Providing ENV
 
